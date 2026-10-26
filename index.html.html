@@ -1,0 +1,716 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Function Model Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: squared-paper graph stage on the left, GDC-style control column on the right; scenario strip above, tasks below. */
+:root{
+  --paper:#F1F4F7; --panel:#FFFFFF; --plot:#FBFCFD; --ink:#17202D; --muted:#5A6676; --line:#D8DFE8;
+  --grid-minor:#E6ECF2; --grid-major:#CBD5E1; --axis:#17202D;
+  --curve:#1E4FD0; --curve-soft:#E4EBFB; --data:#D9650A; --feature:#12855A; --resid:#98A4B4;
+  --good:#12855A; --warn:#B7791F; --bad:#C2413A;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#0F141B; --panel:#161D27; --plot:#121922; --ink:#E5EAF1; --muted:#97A3B3; --line:#263140;
+  --grid-minor:#1A232E; --grid-major:#2A3646; --axis:#C9D2DE;
+  --curve:#77A0FF; --curve-soft:#1D2A44; --data:#FF9E45; --feature:#3FCB8E; --resid:#5E6B7C;
+  --good:#3FCB8E; --warn:#E2B04A; --bad:#F07068; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --paper:#0F141B; --panel:#161D27; --plot:#121922; --ink:#E5EAF1; --muted:#97A3B3; --line:#263140;
+  --grid-minor:#1A232E; --grid-major:#2A3646; --axis:#C9D2DE;
+  --curve:#77A0FF; --curve-soft:#1D2A44; --data:#FF9E45; --feature:#3FCB8E; --resid:#5E6B7C;
+  --good:#3FCB8E; --warn:#E2B04A; --bad:#F07068; color-scheme:dark;}
+
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 40px}
+.wrap{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--curve);outline-offset:2px}
+
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 32px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(28px,4vw,40px);line-height:1.05;margin:4px 0 0;letter-spacing:-.01em;text-wrap:balance}
+.lede{margin:0;max-width:52ch;color:var(--muted)}
+
+.scenarios{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--panel);border-radius:999px;padding:7px 14px;cursor:pointer;display:flex;gap:8px;align-items:baseline}
+.chip small{font-family:var(--f-mono);color:var(--muted);font-size:11px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.chip[aria-pressed="true"] small{color:inherit;opacity:.7}
+
+.lab{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
+@media (max-width:900px){.lab{grid-template-columns:minmax(0,1fr)}}
+.stage{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.eqbar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px 20px}
+.eq{font-family:var(--f-mono);font-size:clamp(17px,2.2vw,22px);font-weight:500;color:var(--curve);overflow-wrap:anywhere}
+.eq i{font-style:italic;font-family:var(--f-body)}
+.fit{display:flex;align-items:center;gap:10px;font-family:var(--f-mono);font-size:13px}
+.fitbar{width:120px;height:8px;border-radius:4px;background:var(--grid-minor);overflow:hidden}
+.fitbar span{display:block;height:100%;background:var(--good);transition:width .2s}
+.plot{position:relative;width:100%;aspect-ratio:4/3;max-height:68vh;max-width:100%}
+.plot canvas{position:absolute;inset:0;width:100%;height:100%;display:block;border-radius:6px}
+.toggles{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;font-size:14px}
+.toggles label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.key{display:inline-block;width:10px;height:10px;border-radius:50%}
+.trace{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-family:var(--f-mono);font-size:13px}
+.trace input[type=range]{flex:1;min-width:140px}
+.trace output{color:var(--ink)}
+
+aside.controls{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:14px}
+h2{font-family:var(--f-mono);font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0}
+.models{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mbtn{text-align:left;border:1px solid var(--line);background:transparent;border-radius:6px;padding:7px 9px;cursor:pointer;display:flex;flex-direction:column;gap:1px}
+.mbtn b{font-weight:600;font-size:14px}
+.mbtn span{font-family:var(--f-mono);font-size:11.5px;color:var(--muted)}
+.mbtn[aria-pressed="true"]{border-color:var(--curve);background:var(--curve-soft)}
+.mbtn[aria-pressed="true"] span{color:var(--curve)}
+.params{display:flex;flex-direction:column;gap:12px}
+.prow{display:grid;grid-template-columns:22px minmax(0,1fr) 84px;gap:10px;align-items:center}
+.prow .pl{font-style:italic;font-size:18px;font-weight:500;text-align:center}
+.prow input[type=number]{width:100%;border:1px solid var(--line);background:var(--plot);border-radius:5px;padding:4px 6px;font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums}
+input[type=range]{accent-color:var(--curve);width:100%}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;width:max-content}
+.seg button{border:0;background:transparent;padding:4px 14px;cursor:pointer;font-family:var(--f-mono);font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--curve);color:var(--panel)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--ink);background:var(--ink);color:var(--paper);border-radius:6px;padding:8px 14px;cursor:pointer;font-weight:500}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn:disabled{opacity:.4;cursor:default}
+.note{font-size:12.5px;color:var(--muted);margin:0}
+dl.feat{margin:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:5px 14px;font-size:14px}
+dl.feat dt{color:var(--muted)}
+dl.feat dd{margin:0;font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums;text-align:right}
+
+.tasks{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px}
+@media (max-width:900px){.tasks{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card h3{font-family:var(--f-display);font-weight:700;font-size:20px;margin:0;text-wrap:balance}
+.card p{margin:0;max-width:65ch}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;font-family:var(--f-mono);font-size:13px;font-variant-numeric:tabular-nums}
+th,td{border:1px solid var(--line);padding:4px 10px;text-align:center;white-space:nowrap}
+th{font-family:var(--f-body);font-weight:600;text-align:left;background:var(--plot)}
+ol.qs{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:8px}
+ol.qs li{max-width:65ch}
+ol.qs li::marker{font-family:var(--f-mono);color:var(--muted)}
+.tag{font-family:var(--f-mono);font-size:11px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">IB Mathematics: AI SL · Topic 2 · Functions &amp; modelling</div>
+      <h1>Function Model Lab</h1>
+    </div>
+    <p class="lede">Choose a scenario, decide which model type suits the data, then tune the parameters until the curve fits. Watch R² and the key features change as you go.</p>
+  </header>
+
+  <nav class="scenarios" id="scenarios" aria-label="Scenarios"></nav>
+
+  <main class="lab">
+    <section class="stage">
+      <div class="eqbar">
+        <div class="eq" id="eq"></div>
+        <div class="fit" id="fit"><span id="fitText"></span><div class="fitbar"><span id="fitBar"></span></div></div>
+      </div>
+      <div class="plot"><canvas id="cv" aria-label="Graph of the model and data"></canvas></div>
+      <div class="toggles">
+        <label><input type="checkbox" id="tFeat" checked> <span class="key" style="background:var(--feature)"></span>Key features</label>
+        <label id="lRes"><input type="checkbox" id="tRes"> <span class="key" style="background:var(--resid)"></span>Residuals</label>
+        <label><input type="checkbox" id="tTrace"> <span class="key" style="background:var(--ink)"></span>Trace</label>
+      </div>
+      <div class="trace" id="traceRow" hidden>
+        <span id="traceVar">x</span>
+        <input type="range" id="traceX" step="any">
+        <output id="traceOut"></output>
+      </div>
+    </section>
+
+    <aside class="controls">
+      <h2>Model type</h2>
+      <div class="models" id="models"></div>
+      <h2>Parameters</h2>
+      <div class="params" id="params"></div>
+      <div class="actions">
+        <button class="btn" id="bestfit">Find best fit</button>
+        <button class="btn ghost" id="reset">Reset</button>
+      </div>
+      <p class="note" id="fitNote"></p>
+      <h2>Key features</h2>
+      <dl class="feat" id="features"></dl>
+    </aside>
+  </main>
+
+  <section class="tasks">
+    <div class="card">
+      <span class="tag" id="scenTag"></span>
+      <h3 id="scenTitle"></h3>
+      <p id="scenDesc"></p>
+      <div class="tablewrap" id="tableWrap"></div>
+    </div>
+    <div class="card">
+      <span class="tag">Questions</span>
+      <h3>Use your model</h3>
+      <ol class="qs" id="qs"></ol>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+const $ = s => document.querySelector(s);
+const DEG = Math.PI/180;
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const MODELS = {
+  linear:{label:'Linear', form:'mx + c', params:['m','c']},
+  quadratic:{label:'Quadratic', form:'ax² + bx + c', params:['a','b','c']},
+  cubic:{label:'Cubic', form:'ax³ + bx² + cx + d', params:['a','b','c','d']},
+  exponential:{label:'Exponential', form:'k·aˣ + c', params:['k','a','c']},
+  power:{label:'Variation', form:'axⁿ', params:['a','n']},
+  sinusoidal:{label:'Sinusoidal', form:'a sin(bx) + d', params:['a','b','d']}
+};
+
+const SCEN = [
+  {id:'free', name:'Free explore', short:'no data', xl:'x', yl:'y', win:[-10,10,-10,10], data:null,
+   tag:'Explore', title:'Transformations and parameters',
+   desc:'No data here, just the function. Move one slider at a time and describe what each parameter does to the graph.',
+   qs:['For f(x) = k·aˣ + c, what does changing c do to the graph? Write down the equation of the horizontal asymptote.',
+       'For a quadratic, how does the sign of a change the shape? Where is the axis of symmetry in terms of a and b?',
+       'For a sin(bx) + d, how does b change the period? Find the value of b that gives a period of 90°.',
+       'For axⁿ, compare n = 1, 2, 3 and n = −1, −2. Which give asymptotes?']},
+  {id:'taxi', name:'Taxi fares', short:'km → AED', xl:'distance (km)', yl:'fare (AED)', xs:'d', ys:'F', xu:'km', yu:'AED', win:[0,16,0,50],
+   data:[[2,16.4],[4,20.8],[6,25.5],[8,29.4],[10,34.1],[12,38.6],[15,45.2]],
+   tag:'Example data', title:'Taxi fares across Dubai',
+   desc:'A student records the fare for seven taxi journeys of different lengths.',
+   qs:['Write down the gradient of your model and interpret it in context.',
+       'Interpret the y-intercept of your model in context.',
+       'Use your model to estimate the fare for a 20 km journey. Comment on the reliability of this estimate.']},
+  {id:'ball', name:'Football kick', short:'m → m', xl:'horizontal distance (m)', yl:'height (m)', xs:'x', ys:'h', xu:'m', yu:'m', win:[0,26,0,10],
+   data:[[0,0],[4,4.0],[8,6.4],[12,7.3],[16,6.4],[20,4.1],[24,0.2]],
+   tag:'Example data', title:'Path of a kicked football',
+   desc:'Video analysis gives the height of a football at different horizontal distances from where it was kicked.',
+   qs:['Find the maximum height of the ball and the horizontal distance at which it occurs.',
+       'Find the horizontal distance at which the ball lands.',
+       'Write down a suitable domain for your model and explain your choice.']},
+  {id:'box', name:'Open box', short:'cm → cm³', xl:'side of cut square, x (cm)', yl:'volume (cm³)', xs:'x', ys:'V', xu:'cm', yu:'cm³', win:[0,10.5,0,650],
+   data:[[1,324],[2,512],[3,588],[4,576],[5,500],[6,384],[7,252],[8,128],[9,36]],
+   tag:'Geometric model', title:'Volume of an open box',
+   desc:'Squares of side x cm are cut from each corner of a 20 cm by 20 cm card, which is folded into an open box.',
+   qs:['Explain why the domain of the model is 0 < x < 10.',
+       'Find the value of x that gives the maximum volume, and write down that volume.',
+       'Show that V = x(20 − 2x)² expands to 4x³ − 80x² + 400x. Compare with your model.']},
+  {id:'tea', name:'Cooling karak', short:'min → °C', xl:'time (minutes)', yl:'temperature (°C)', xs:'t', ys:'T', xu:'min', yu:'°C', win:[0,62,0,100],
+   data:[[0,94.1],[5,78.5],[10,65.6],[15,56.8],[20,48.9],[30,39.2],[40,32.8]],
+   tag:'Example data', title:'A cup of karak cooling',
+   desc:'The temperature of a cup of karak tea is measured as it cools in an air-conditioned classroom.',
+   qs:['What does the horizontal asymptote of your model represent in context?',
+       'Estimate the temperature of the tea after 60 minutes.',
+       'Try a linear model. Explain why it is not suitable here, using R² and the long-term behaviour.']},
+  {id:'drive', name:'Dubai → Abu Dhabi', short:'km/h → h', xl:'average speed (km/h)', yl:'journey time (hours)', xs:'v', ys:'t', xu:'km/h', yu:'h', win:[0,150,0,5],
+   data:[[40,3.5],[60,2.33],[80,1.75],[100,1.4],[120,1.17],[140,1.0]],
+   tag:'Calculated data', title:'Journey time against speed',
+   desc:'Journey times for a 140 km drive at different average speeds.',
+   qs:['Explain why journey time varies inversely with speed.',
+       'Find the value of a in your model and interpret it in context.',
+       'Write down the equations of the asymptotes and explain why the model is not valid at v = 0.']},
+  {id:'sun', name:'Daylight hours', short:'month → h', xl:'month (1 = January)', yl:'hours of daylight', xs:'m', ys:'D', xu:'', yu:'hours', win:[0,13,9,15],
+   data:[[1,10.9],[2,11.4],[3,12.0],[4,12.6],[5,13.2],[6,13.5],[7,13.4],[8,12.9],[9,12.3],[10,11.7],[11,11.1],[12,10.7]],
+   tag:'Approximate data', title:'Daylight hours in Dubai',
+   desc:'Approximate hours of daylight in the middle of each month. Angles in this model are in degrees.',
+   qs:['Write down the amplitude and the period of your model.',
+       'Write down the equation of the principal axis and interpret it in context.',
+       'Use your model to find the months in which Dubai has more than 13 hours of daylight.']}
+];
+
+const S = {scen:SCEN[1], model:'linear', p:{}, type:'sin', feat:true, res:false, trace:false, tx:0};
+
+/* ---------- maths helpers ---------- */
+function f(x, model=S.model, p=S.p, type=S.type){
+  switch(model){
+    case 'linear': return p.m*x + p.c;
+    case 'quadratic': return (p.a*x + p.b)*x + p.c;
+    case 'cubic': return ((p.a*x + p.b)*x + p.c)*x + p.d;
+    case 'exponential': return p.k*Math.pow(p.a, x) + p.c;
+    case 'power': if(x===0 && p.n<0) return NaN; return p.a*Math.pow(x, p.n);
+    case 'sinusoidal': return p.a*(type==='cos'?Math.cos(p.b*x*DEG):Math.sin(p.b*x*DEG)) + p.d;
+  }
+}
+function niceStep(raw){
+  const e = Math.pow(10, Math.floor(Math.log10(raw))); const m = raw/e;
+  return (m<1.5?1:m<3.5?2:m<7.5?5:10)*e;
+}
+const decs = st => Math.max(0, -Math.floor(Math.log10(st)+1e-9));
+function sf(v, n=3){
+  if(!isFinite(v)) return '—';
+  if(Math.abs(v) < 1e-9) return '0';
+  let s = Number(v.toPrecision(n));
+  if(Math.abs(s) >= 1e6 || Math.abs(s) < 1e-4) return s.toExponential(n-1);
+  return String(s).replace('-', '−');
+}
+const num = v => sf(v, 4);
+
+function ranges(model, sc){
+  const [x0,x1,y0,y1] = sc.win;
+  if(sc.id==='free'){
+    return {
+      linear:{m:[-10,10,.1], c:[-10,10,.1]},
+      quadratic:{a:[-5,5,.1], b:[-10,10,.1], c:[-10,10,.1]},
+      cubic:{a:[-3,3,.05], b:[-5,5,.1], c:[-10,10,.1], d:[-10,10,.1]},
+      exponential:{k:[-10,10,.1], a:[.1,4,.01], c:[-10,10,.1]},
+      power:{a:[-10,10,.1], n:[-3,3,1]},
+      sinusoidal:{a:[-8,8,.1], b:[1,360,1], d:[-10,10,.1]}
+    }[model];
+  }
+  const Y = Math.max(Math.abs(y0), Math.abs(y1)), X = Math.max(Math.abs(x0), Math.abs(x1));
+  const R = (lo,hi) => [lo, hi, niceStep((hi-lo)/800)];
+  const sym = v => R(-v, v);
+  return {
+    linear:{m:sym(3*Y/X), c:sym(Y)},
+    quadratic:{a:sym(8*Y/X/X), b:sym(8*Y/X), c:sym(Y)},
+    cubic:{a:sym(8*Y/X**3), b:sym(16*Y/X/X), c:sym(8*Y/X), d:sym(Y)},
+    exponential:{k:sym(1.5*Y), a:[.1, 3, (x1-x0)>20?.001:.01], c:sym(Y)},
+    power:{a:sym(2*Y*X), n:[-3,3,1]},
+    sinusoidal:{a:sym(Y), b:[1,360,1], d:sym(Y)}
+  }[model];
+}
+function defaults(model, sc){
+  if(sc.id==='free'){
+    return {linear:{m:1,c:2}, quadratic:{a:1,b:-2,c:-3}, cubic:{a:.5,b:0,c:-4,d:1},
+      exponential:{k:1,a:2,c:-3}, power:{a:4,n:-1}, sinusoidal:{a:3,b:60,d:1}}[model];
+  }
+  const [x0,x1,y0,y1] = sc.win, xr=x1-x0, yr=y1-y0, xm=(x0+x1)/2;
+  let p;
+  switch(model){
+    case 'linear': p={m:.3*yr/xr, c:y0+.5*yr}; break;
+    case 'quadratic': { const a=.6*yr/((xr/2)**2), h=xm, k=y0+.3*yr; p={a, b:-2*a*h, c:a*h*h+k}; break; }
+    case 'cubic': { const a=.4*yr/((xr/2)**3), h=xm, k=y0+.5*yr; p={a, b:-3*a*h, c:3*a*h*h, d:-a*h**3+k}; break; }
+    case 'exponential': p={k:.1*yr, a:Math.pow(2, 4/xr), c:y0+.05*yr}; break;
+    case 'power': p={a:.5*yr/xr, n:1}; break;
+    case 'sinusoidal': p={a:.25*yr, b:Math.min(360, Math.max(1, Math.round(720/xr))), d:y0+.5*yr}; break;
+  }
+  const r = ranges(model, sc);
+  for(const k in p){ const st=r[k][2]; p[k] = Math.round(p[k]/st)*st; }
+  return p;
+}
+
+/* ---------- equation ---------- */
+function eqHTML(){
+  const p=S.p, m=S.model;
+  const terms = list => {
+    let out='', first=true;
+    for(const [c, t] of list){
+      if(Math.abs(c) < 1e-12 && list.length>1) continue;
+      const neg = c<0, mag = Math.abs(c);
+      const coef = (t && Math.abs(mag-1)<1e-12) ? '' : num(mag);
+      out += first ? (neg?'−':'') : (neg?' − ':' + ');
+      out += coef + t; first=false;
+    }
+    return out || '0';
+  };
+  const X='<i>x</i>';
+  let body;
+  switch(m){
+    case 'linear': body = terms([[p.m,X],[p.c,'']]); break;
+    case 'quadratic': body = terms([[p.a,X+'<sup>2</sup>'],[p.b,X],[p.c,'']]); break;
+    case 'cubic': body = terms([[p.a,X+'<sup>3</sup>'],[p.b,X+'<sup>2</sup>'],[p.c,X],[p.d,'']]); break;
+    case 'exponential': {
+      const kk = Math.abs(p.k-1)<1e-12 ? '' : Math.abs(p.k+1)<1e-12 ? '−' : num(p.k);
+      body = kk + '(' + num(p.a) + ')<sup><i>x</i></sup>';
+      if(Math.abs(p.c)>1e-12) body += (p.c<0?' − ':' + ') + num(Math.abs(p.c));
+      break; }
+    case 'power': {
+      const n=p.n; const xp = n===0 ? '' : n===1 ? X : X+'<sup>'+String(n).replace('-','−')+'</sup>';
+      body = (n===0 ? num(p.a) : (Math.abs(p.a-1)<1e-12?'':num(p.a)) + xp); break; }
+    case 'sinusoidal': {
+      body = (p.a<0?'−':'') + (Math.abs(Math.abs(p.a)-1)<1e-12?'':num(Math.abs(p.a))) + ' '+S.type+'(' + num(p.b) + X + ')';
+      if(Math.abs(p.d)>1e-12) body += (p.d<0?' − ':' + ') + num(Math.abs(p.d));
+      break; }
+  }
+  return '<i>f</i>(<i>x</i>) = ' + body;
+}
+
+/* ---------- key features ---------- */
+function roots(fn, a, b){
+  const out=[], N=800; let px=a, py=fn(a);
+  for(let i=1;i<=N;i++){
+    const x=a+(b-a)*i/N, y=fn(x);
+    if(isFinite(py)&&isFinite(y)){
+      if(py===0) out.push(px);
+      else if(py*y<0){ let lo=px,hi=x,flo=py; for(let k=0;k<50;k++){const mid=(lo+hi)/2,fm=fn(mid); if(flo*fm<=0){hi=mid}else{lo=mid;flo=fm}} out.push((lo+hi)/2); }
+    }
+    px=x; py=y;
+  }
+  return out.filter((v,i,arr)=>i===0||Math.abs(v-arr[i-1])>1e-6);
+}
+function features(){
+  const p=S.p, [x0,x1,y0,y1]=S.scen.win;
+  const pts=[], lines=[], rows=[];
+  const inX = x => x>=x0 && x<=x1;
+  const pt = (x,y,label) => { pts.push({x,y,label}); };
+  const yint = () => { const y=f(0); if(isFinite(y)){ rows.push(['y-intercept', '(0, '+sf(y)+')']); if(inX(0)) pt(0,y,'(0, '+sf(y)+')'); } };
+  const xints = list => { rows.push(['x-intercept'+(list.length===1?'':'s'), list.length? list.map(r=>sf(r)).join(', ') : 'none']); list.forEach(r=>pt(r,0,'('+sf(r)+', 0)')); };
+  switch(S.model){
+    case 'linear':
+      rows.push(['Gradient', sf(p.m)]);
+      yint();
+      xints(Math.abs(p.m)>1e-12 ? [-p.c/p.m] : []);
+      break;
+    case 'quadratic': {
+      if(Math.abs(p.a)<1e-12){ rows.push(['Shape','a = 0, so this is linear']); yint(); break; }
+      const h=-p.b/(2*p.a), k=f(h);
+      rows.push([p.a<0?'Vertex (max)':'Vertex (min)', '('+sf(h)+', '+sf(k)+')']);
+      rows.push(['Axis of symmetry', 'x = '+sf(h)]);
+      pt(h,k,(p.a<0?'max ':'min ')+'('+sf(h)+', '+sf(k)+')');
+      lines.push({v:'x', at:h});
+      yint();
+      const D=p.b*p.b-4*p.a*p.c;
+      xints(D<0?[]:D===0?[h]:[(-p.b-Math.sqrt(D))/(2*p.a),(-p.b+Math.sqrt(D))/(2*p.a)].sort((a,b)=>a-b));
+      break; }
+    case 'cubic': {
+      yint();
+      const A=3*p.a,B=2*p.b,C=p.c, D=B*B-4*A*C;
+      let tps=[];
+      if(Math.abs(A)<1e-12){ if(Math.abs(B)>1e-12) tps=[-C/B]; }
+      else if(D>0){ tps=[(-B-Math.sqrt(D))/(2*A),(-B+Math.sqrt(D))/(2*A)]; }
+      tps.sort((a,b)=>a-b).forEach(x=>{ const y=f(x), max = (6*p.a*x+2*p.b)<0;
+        rows.push([max?'Local max':'Local min','('+sf(x)+', '+sf(y)+')']); pt(x,y,(max?'max ':'min ')+'('+sf(x)+', '+sf(y)+')'); });
+      if(!tps.length) rows.push(['Turning points','none']);
+      const w=x1-x0; xints(roots(x=>f(x), x0-w, x1+w));
+      break; }
+    case 'exponential': {
+      lines.push({v:'y', at:p.c, label:'y = '+sf(p.c)});
+      rows.push(['Horizontal asymptote','y = '+sf(p.c)]);
+      yint();
+      const inc = (p.k>0) === (p.a>1);
+      rows.push(['Behaviour', Math.abs(p.a-1)<1e-12||p.k===0 ? 'constant' : (inc?'increasing':'decreasing')]);
+      if(p.a>0 && p.c/(-p.k)>0 && Math.abs(p.a-1)>1e-12){ const r=Math.log(-p.c/p.k)/Math.log(p.a); xints([r]); } else xints([]);
+      break; }
+    case 'power': {
+      const n=p.n;
+      if(n<0){ lines.push({v:'x',at:0,label:'x = 0'}); lines.push({v:'y',at:0,label:'y = 0'});
+        rows.push(['Vertical asymptote','x = 0']); rows.push(['Horizontal asymptote','y = 0']); }
+      else if(n>0){ rows.push(['Passes through','(0, 0)']); pt(0,0,'(0, 0)'); }
+      else rows.push(['Shape','n = 0, so f is constant']);
+      rows.push(['Type', n===1?'direct variation': n<0?'inverse variation':'power function']);
+      if(n!==0){ const y1v=f(1); rows.push(['f(1) = a', sf(y1v)]); }
+      break; }
+    case 'sinusoidal': {
+      const A=Math.abs(p.a), per = 360/Math.abs(p.b);
+      rows.push(['Amplitude', sf(A)]);
+      rows.push(['Period', sf(per)+(S.scen.id==='free'?'°':' ('+S.scen.xl.split(' ')[0]+')')]);
+      rows.push(['Principal axis','y = '+sf(p.d)]);
+      rows.push(['Max / min', sf(p.d+A)+' / '+sf(p.d-A)]);
+      lines.push({v:'y',at:p.d,label:'y = '+sf(p.d)});
+      lines.push({v:'y',at:p.d+A,faint:true}); lines.push({v:'y',at:p.d-A,faint:true});
+      break; }
+  }
+  return {pts, lines, rows};
+}
+
+/* ---------- fit ---------- */
+function stats(model=S.model, p=S.p, type=S.type){
+  const d=S.scen.data; if(!d) return null;
+  const mean = d.reduce((s,q)=>s+q[1],0)/d.length;
+  let ssr=0, sst=0;
+  for(const [x,y] of d){ const e=y-f(x,model,p,type); ssr += isFinite(e)? e*e : 1e12; sst += (y-mean)**2; }
+  return {ssr, r2: 1-ssr/sst};
+}
+function solve(A,b){
+  const n=b.length; A=A.map((r,i)=>[...r,b[i]]);
+  for(let i=0;i<n;i++){ let mx=i; for(let k=i+1;k<n;k++) if(Math.abs(A[k][i])>Math.abs(A[mx][i])) mx=k; [A[i],A[mx]]=[A[mx],A[i]];
+    for(let k=i+1;k<n;k++){ const fct=A[k][i]/A[i][i]; for(let j=i;j<=n;j++) A[k][j]-=fct*A[i][j]; } }
+  const x=new Array(n).fill(0); for(let i=n-1;i>=0;i--){ let s=A[i][n]; for(let j=i+1;j<n;j++) s-=A[i][j]*x[j]; x[i]=s/A[i][i]; } return x;
+}
+function polyFit(deg){
+  const d=S.scen.data, n=deg+1, M=[...Array(n)].map(()=>Array(n).fill(0)), v=Array(n).fill(0);
+  for(const [x,y] of d){ for(let i=0;i<n;i++){ v[i]+=y*x**i; for(let j=0;j<n;j++) M[i][j]+=x**(i+j); } }
+  return solve(M,v); // [c0,c1,...]
+}
+function nelder(fn, x0, steps, iters=800){
+  const n=x0.length; let P=[x0.slice()];
+  for(let i=0;i<n;i++){ const q=x0.slice(); q[i]+=steps[i]; P.push(q); }
+  let F=P.map(fn);
+  for(let it=0;it<iters;it++){
+    const idx=[...F.keys()].sort((a,b)=>F[a]-F[b]); P=idx.map(i=>P[i]); F=idx.map(i=>F[i]);
+    const c=Array(n).fill(0); for(let i=0;i<n;i++) for(let j=0;j<n;j++) c[j]+=P[i][j]/n;
+    const w=P[n], xr=c.map((v,j)=>v+(v-w[j])), fr=fn(xr);
+    if(fr<F[0]){ const xe=c.map((v,j)=>v+2*(v-w[j])), fe=fn(xe); if(fe<fr){P[n]=xe;F[n]=fe}else{P[n]=xr;F[n]=fr} }
+    else if(fr<F[n-1]){ P[n]=xr; F[n]=fr; }
+    else { const xc=c.map((v,j)=>v+.5*(w[j]-v)), fc=fn(xc);
+      if(fc<F[n]){P[n]=xc;F[n]=fc} else { for(let i=1;i<=n;i++){ P[i]=P[i].map((v,j)=>P[0][j]+.5*(v-P[0][j])); F[i]=fn(P[i]); } } }
+  }
+  let b=0; for(let i=1;i<=n;i++) if(F[i]<F[b]) b=i; return {x:P[b], f:F[b]};
+}
+function bestFit(){
+  const d=S.scen.data, m=S.model;
+  if(m==='linear'){ const c=polyFit(1); return {m:c[1], c:c[0]}; }
+  if(m==='quadratic'){ const c=polyFit(2); return {a:c[2], b:c[1], c:c[0]}; }
+  if(m==='cubic'){ const c=polyFit(3); return {a:c[3], b:c[2], c:c[1], d:c[0]}; }
+  if(m==='power'){ const n=S.p.n; let sn=0, sd=0; for(const [x,y] of d){ if(x===0&&n<0) continue; const t=x**n; sn+=y*t; sd+=t*t; } return {a: sd? sn/sd : 0, n}; }
+  const names = MODELS[m].params, r = ranges(m, S.scen);
+  const ys=d.map(q=>q[1]), ymin=Math.min(...ys), ymax=Math.max(...ys), ymean=ys.reduce((a,b)=>a+b,0)/ys.length;
+  const xr = S.scen.win[1]-S.scen.win[0];
+  const obj = v => { const p={}; names.forEach((k,i)=>p[k]=v[i]); if(m==='exponential'&&p.a<=0) return 1e30; return stats(m,p).ssr; };
+  const steps = names.map(k=>(r[k][1]-r[k][0])*.05);
+  let starts=[names.map(k=>S.p[k])];
+  if(m==='exponential'){
+    for(const a of [Math.pow(.5,3/xr), Math.pow(2,3/xr)]) for(const c of [0, ymin-.05*(ymax-ymin), ymin*.8]) starts.push([ys[0]-c, a, c]);
+  }
+  if(m==='sinusoidal'){
+    const amp=(ymax-ymin)/2;
+    for(let k=1;k<=8;k++) for(const s of [1,-1]) starts.push([s*amp, 180*k/xr, ymean]);
+  }
+  let best=null;
+  for(const s of starts){ let res=nelder(obj,s,steps); res=nelder(obj,res.x,steps.map(v=>v*.1)); if(!best||res.f<best.f) best=res; }
+  const p={}; names.forEach((k,i)=>p[k]=best.x[i]); if(m==='sinusoidal'&&p.b<0){p.b=-p.b; if(S.type==='sin') p.a=-p.a;}
+  return p;
+}
+
+/* ---------- UI build ---------- */
+const scenNav=$('#scenarios');
+SCEN.forEach(sc=>{
+  const b=document.createElement('button'); b.className='chip'; b.id='sc-'+sc.id;
+  b.innerHTML = sc.name+' <small>'+sc.short+'</small>';
+  b.onclick=()=>setScenario(sc.id); scenNav.appendChild(b);
+});
+const modelsEl=$('#models');
+Object.entries(MODELS).forEach(([k,m])=>{
+  const b=document.createElement('button'); b.className='mbtn'; b.id='m-'+k; b.dataset.m=k;
+  b.innerHTML='<b>'+m.label+'</b><span>'+m.form+'</span>';
+  b.onclick=()=>setModel(k); modelsEl.appendChild(b);
+});
+
+function buildParams(){
+  const el=$('#params'); el.innerHTML='';
+  const r=ranges(S.model,S.scen);
+  if(S.model==='sinusoidal'){
+    const seg=document.createElement('div'); seg.className='seg';
+    ['sin','cos'].forEach(t=>{ const b=document.createElement('button'); b.textContent=t; b.setAttribute('aria-pressed', S.type===t); b.onclick=()=>{S.type=t; buildParams(); update();}; seg.appendChild(b); });
+    el.appendChild(seg);
+  }
+  MODELS[S.model].params.forEach(k=>{
+    const [lo,hi,st]=r[k];
+    const row=document.createElement('div'); row.className='prow';
+    row.innerHTML = '<span class="pl">'+k+'</span>'+
+      '<input type="range" id="r-'+k+'" min="'+lo+'" max="'+hi+'" step="'+st+'" aria-label="parameter '+k+'">'+
+      '<input type="number" id="n-'+k+'" step="'+st+'" aria-label="value of '+k+'">';
+    el.appendChild(row);
+    const rg=row.querySelector('input[type=range]'), nb=row.querySelector('input[type=number]');
+    rg.addEventListener('input',()=>{ S.p[k]=parseFloat(rg.value); nb.value=fmtBox(S.p[k],st); update(); });
+    nb.addEventListener('input',()=>{ const v=parseFloat(nb.value); if(isFinite(v)){ S.p[k]= k==='n'?Math.round(v):v; rg.value=S.p[k]; update(); } });
+  });
+  syncInputs();
+}
+function fmtBox(v, st){ return k_round(v, Math.max(decs(st), 0)); }
+function k_round(v,d){ return Number(v.toFixed(Math.min(6,d+1))).toString(); }
+function syncInputs(){
+  const r=ranges(S.model,S.scen);
+  MODELS[S.model].params.forEach(k=>{
+    const rg=$('#r-'+k), nb=$('#n-'+k); if(!rg) return;
+    rg.value=S.p[k]; nb.value = Number(S.p[k].toPrecision(5)).toString();
+  });
+}
+
+function setScenario(id){
+  S.scen = SCEN.find(s=>s.id===id);
+  SCEN.forEach(s=>$('#sc-'+s.id).setAttribute('aria-pressed', s===S.scen));
+  S.p = defaults(S.model, S.scen);
+  const [x0,x1]=S.scen.win; S.tx = x0+(x1-x0)*.4;
+  const tr=$('#traceX'); tr.min=x0; tr.max=x1; tr.step=(x1-x0)/400; tr.value=S.tx;
+  $('#traceVar').textContent = S.scen.xs || 'x';
+  $('#scenTag').textContent=S.scen.tag; $('#scenTitle').textContent=S.scen.title; $('#scenDesc').textContent=S.scen.desc;
+  $('#qs').innerHTML = S.scen.qs.map(q=>'<li>'+q+'</li>').join('');
+  const tw=$('#tableWrap');
+  if(S.scen.data){
+    tw.hidden=false;
+    tw.innerHTML='<table><tr><th>'+S.scen.xl+'</th>'+S.scen.data.map(q=>'<td>'+q[0]+'</td>').join('')+'</tr><tr><th>'+S.scen.yl+'</th>'+S.scen.data.map(q=>'<td>'+q[1]+'</td>').join('')+'</tr></table>';
+  } else tw.hidden=true;
+  const hasData=!!S.scen.data;
+  $('#fit').style.visibility = hasData?'visible':'hidden';
+  $('#lRes').hidden=!hasData; $('#bestfit').disabled=!hasData;
+  buildParams(); update();
+}
+function setModel(m){
+  S.model=m;
+  document.querySelectorAll('.mbtn').forEach(b=>b.setAttribute('aria-pressed', b.dataset.m===m));
+  S.p=defaults(m,S.scen); buildParams(); update();
+}
+
+function update(){
+  $('#eq').innerHTML=eqHTML();
+  const st=stats();
+  if(st){
+    const r2=st.r2, col = r2>=.95?'var(--good)':r2>=.8?'var(--warn)':'var(--bad)';
+    $('#fitText').innerHTML = 'R² = '+(r2<0?'&lt; 0':r2.toFixed(3))+' &nbsp;<span style="color:var(--muted)">SS<sub>res</sub> = '+sf(st.ssr)+'</span>';
+    const bar=$('#fitBar'); bar.style.width=Math.max(0,r2)*100+'%'; bar.style.background=col;
+  }
+  const ft=features();
+  $('#features').innerHTML = ft.rows.map(r=>'<dt>'+r[0]+'</dt><dd>'+r[1]+'</dd>').join('');
+  const notes = {linear:'Best fit uses least squares, matching linear regression on your GDC.',
+    quadratic:'Best fit uses least squares, matching quadratic regression on your GDC.',
+    cubic:'Best fit uses least squares, matching cubic regression on your GDC.',
+    exponential:'Best fit searches for k, a and c together. GDC exponential regression assumes c = 0, so it can give a different answer.',
+    power:'Choose n first. Best fit then finds the value of a for that n.',
+    sinusoidal:'Best fit searches for a, b and d. Pick sin or cos first.'};
+  $('#fitNote').textContent = S.scen.data ? notes[S.model] : 'Pick a scenario with data to use best fit.';
+  if(S.trace){
+    const y=f(S.tx), sc=S.scen;
+    $('#traceOut').textContent = sc.data
+      ? (sc.xs+' = '+sf(S.tx)+' '+sc.xu+'  →  '+sc.ys+' ≈ '+sf(y)+' '+sc.yu)
+      : ('f('+sf(S.tx)+') = '+sf(y));
+  }
+  draw(ft);
+}
+
+/* ---------- canvas ---------- */
+const cv=$('#cv'), ctx=cv.getContext('2d');
+let lastFt=null;
+function tickStep(range){ return niceStep(range/8); }
+function draw(ft){
+  if(ft) lastFt=ft; ft=lastFt; if(!ft) return;
+  const css=getComputedStyle(document.documentElement), col=n=>css.getPropertyValue(n).trim();
+  const W=cv.clientWidth, H=cv.clientHeight, dpr=window.devicePixelRatio||1;
+  if(!W||!H) return;
+  cv.width=Math.round(W*dpr); cv.height=Math.round(H*dpr); ctx.setTransform(dpr,0,0,dpr,0,0);
+  const narrow=W<480, fs=narrow?10:12;
+  const pad={l:narrow?44:56, r:12, t:12, b:narrow?38:44};
+  const [x0,x1,y0,y1]=S.scen.win, pw=W-pad.l-pad.r, ph=H-pad.t-pad.b;
+  const X=x=>pad.l+(x-x0)/(x1-x0)*pw, Y=y=>pad.t+ph-(y-y0)/(y1-y0)*ph;
+  ctx.fillStyle=col('--plot'); ctx.fillRect(0,0,W,H);
+  const mono='"IBM Plex Mono", ui-monospace, monospace', body='"IBM Plex Sans", system-ui, sans-serif';
+
+  // grid
+  const sx=tickStep(x1-x0), sy=tickStep(y1-y0);
+  const mx = sx/(String(sx/Math.pow(10,Math.floor(Math.log10(sx))))[0]==='2'?4:5), my = sy/(String(sy/Math.pow(10,Math.floor(Math.log10(sy))))[0]==='2'?4:5);
+  ctx.lineWidth=1;
+  ctx.strokeStyle=col('--grid-minor'); ctx.beginPath();
+  for(let x=Math.ceil(x0/mx)*mx;x<=x1+1e-9;x+=mx){const px=Math.round(X(x))+.5; ctx.moveTo(px,pad.t); ctx.lineTo(px,pad.t+ph);}
+  for(let y=Math.ceil(y0/my)*my;y<=y1+1e-9;y+=my){const py=Math.round(Y(y))+.5; ctx.moveTo(pad.l,py); ctx.lineTo(pad.l+pw,py);}
+  ctx.stroke();
+  ctx.strokeStyle=col('--grid-major'); ctx.beginPath();
+  for(let x=Math.ceil(x0/sx)*sx;x<=x1+1e-9;x+=sx){const px=Math.round(X(x))+.5; ctx.moveTo(px,pad.t); ctx.lineTo(px,pad.t+ph);}
+  for(let y=Math.ceil(y0/sy)*sy;y<=y1+1e-9;y+=sy){const py=Math.round(Y(y))+.5; ctx.moveTo(pad.l,py); ctx.lineTo(pad.l+pw,py);}
+  ctx.stroke();
+
+  // axes
+  ctx.strokeStyle=col('--axis'); ctx.lineWidth=1.5; ctx.beginPath();
+  const ax = (y0<=0&&y1>=0)?Y(0):pad.t+ph, ay=(x0<=0&&x1>=0)?X(0):pad.l;
+  ctx.moveTo(pad.l,ax); ctx.lineTo(pad.l+pw,ax); ctx.moveTo(ay,pad.t); ctx.lineTo(ay,pad.t+ph); ctx.stroke();
+
+  // tick labels
+  ctx.fillStyle=col('--muted'); ctx.font=fs+'px '+mono;
+  const dx=decs(sx), dy=decs(sy);
+  ctx.textAlign='center'; ctx.textBaseline='top';
+  for(let x=Math.ceil(x0/sx)*sx;x<=x1+1e-9;x+=sx) ctx.fillText(x.toFixed(dx).replace('-','−'), X(x), pad.t+ph+5);
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+  for(let y=Math.ceil(y0/sy)*sy;y<=y1+1e-9;y+=sy) ctx.fillText(y.toFixed(dy).replace('-','−'), pad.l-6, Y(y));
+  // axis titles
+  ctx.fillStyle=col('--ink'); ctx.font='500 '+fs+'px '+body;
+  ctx.textAlign='center'; ctx.textBaseline='bottom'; ctx.fillText(S.scen.xl, pad.l+pw/2, H-2);
+  ctx.save(); ctx.translate(12, pad.t+ph/2); ctx.rotate(-Math.PI/2); ctx.textBaseline='middle'; ctx.fillText(S.scen.yl,0,0); ctx.restore();
+
+  ctx.save(); ctx.beginPath(); ctx.rect(pad.l,pad.t,pw,ph); ctx.clip();
+
+  // feature lines
+  if(S.feat){
+    ctx.setLineDash([6,5]); ctx.lineWidth=1.5;
+    ft.lines.forEach(l=>{
+      ctx.strokeStyle=col('--feature'); ctx.globalAlpha = l.faint?.45:1;
+      ctx.beginPath();
+      if(l.v==='y'){ const py=Y(l.at); ctx.moveTo(pad.l,py); ctx.lineTo(pad.l+pw,py); }
+      else { const px=X(l.at); ctx.moveTo(px,pad.t); ctx.lineTo(px,pad.t+ph); }
+      ctx.stroke(); ctx.globalAlpha=1;
+      if(l.label){ ctx.fillStyle=col('--feature'); ctx.font='500 '+fs+'px '+mono;
+        if(l.v==='y'){ ctx.textAlign='right'; ctx.textBaseline='bottom'; ctx.fillText(l.label, pad.l+pw-6, Y(l.at)-4); }
+        else { ctx.textAlign='left'; ctx.textBaseline='top'; ctx.fillText(l.label, X(l.at)+5, pad.t+6); } }
+    });
+    ctx.setLineDash([]);
+  }
+
+  // residuals
+  const d=S.scen.data;
+  if(d && S.res){
+    ctx.strokeStyle=col('--resid'); ctx.lineWidth=1.5; ctx.beginPath();
+    d.forEach(([x,y])=>{ const yh=f(x); if(isFinite(yh)){ ctx.moveTo(X(x),Y(y)); ctx.lineTo(X(x),Y(yh)); } });
+    ctx.stroke();
+  }
+
+  // curve
+  ctx.strokeStyle=col('--curve'); ctx.lineWidth=2.75; ctx.lineJoin='round'; ctx.beginPath();
+  let pen=false, prev=null; const N=Math.max(400, Math.round(pw*1.5));
+  for(let i=0;i<=N;i++){
+    const x=x0+(x1-x0)*i/N, y=f(x);
+    if(!isFinite(y)){ pen=false; prev=null; continue; }
+    let py=Y(y); py=Math.max(-5*H, Math.min(6*H, py));
+    if(prev!==null && Math.abs(py-prev)>H*1.5 && S.model==='power' && S.p.n<0){ pen=false; }
+    if(!pen){ ctx.moveTo(X(x),py); pen=true; } else ctx.lineTo(X(x),py);
+    prev=py;
+  }
+  ctx.stroke();
+
+  // data
+  if(d){
+    d.forEach(([x,y])=>{ ctx.beginPath(); ctx.arc(X(x),Y(y),narrow?4:5,0,Math.PI*2); ctx.fillStyle=col('--data'); ctx.fill(); ctx.lineWidth=1.5; ctx.strokeStyle=col('--plot'); ctx.stroke(); });
+  }
+
+  // feature points
+  if(S.feat){
+    ctx.font='500 '+fs+'px '+mono;
+    ft.pts.forEach(q=>{
+      if(q.x<x0||q.x>x1||q.y<y0||q.y>y1) return;
+      const px=X(q.x), py=Y(q.y);
+      ctx.beginPath(); ctx.arc(px,py,5,0,Math.PI*2); ctx.fillStyle=col('--plot'); ctx.fill(); ctx.lineWidth=2.25; ctx.strokeStyle=col('--feature'); ctx.stroke();
+      const right = px < pad.l+pw*.7;
+      ctx.textAlign=right?'left':'right'; ctx.textBaseline= py<pad.t+24?'top':'bottom';
+      const tx=px+(right?8:-8), ty=py+(py<pad.t+24?6:-6);
+      ctx.lineWidth=4; ctx.strokeStyle=col('--plot'); ctx.strokeText(q.label,tx,ty);
+      ctx.fillStyle=col('--feature'); ctx.fillText(q.label,tx,ty);
+    });
+  }
+
+  // trace
+  if(S.trace){
+    const y=f(S.tx), px=X(S.tx);
+    ctx.strokeStyle=col('--ink'); ctx.setLineDash([3,4]); ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(px,pad.t); ctx.lineTo(px,pad.t+ph);
+    if(isFinite(y)){ ctx.moveTo(pad.l,Y(y)); ctx.lineTo(px,Y(y)); }
+    ctx.stroke(); ctx.setLineDash([]);
+    if(isFinite(y)){ ctx.beginPath(); ctx.arc(px,Y(y),6,0,Math.PI*2); ctx.fillStyle=col('--ink'); ctx.fill(); }
+  }
+  ctx.restore();
+}
+
+/* ---------- events ---------- */
+$('#tFeat').onchange=e=>{S.feat=e.target.checked; draw();};
+$('#tRes').onchange=e=>{S.res=e.target.checked; draw();};
+$('#tTrace').onchange=e=>{S.trace=e.target.checked; $('#traceRow').hidden=!S.trace; update();};
+$('#traceX').addEventListener('input',e=>{S.tx=parseFloat(e.target.value); update();});
+$('#reset').onclick=()=>{ S.p=defaults(S.model,S.scen); syncInputs(); update(); };
+$('#bestfit').onclick=()=>{
+  if(!S.scen.data) return;
+  const target=bestFit(), from={...S.p};
+  if(reduceMotion){ S.p=target; syncInputs(); update(); return; }
+  const t0=performance.now(), dur=700;
+  const step=now=>{ const t=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-t,3);
+    for(const k in target) S.p[k] = k==='n'? target[k] : from[k]+(target[k]-from[k])*e;
+    syncInputs(); update(); if(t<1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+};
+new ResizeObserver(()=>draw()).observe(cv);
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>draw());
+new MutationObserver(()=>draw()).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+if(document.fonts) document.fonts.ready.then(()=>draw());
+
+document.querySelectorAll('.mbtn').forEach(b=>b.setAttribute('aria-pressed', b.dataset.m===S.model));
+setScenario('taxi');
+})();
+</script>
+
+</body></html>
